@@ -1,5 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 // Simplified dual input handling via compile-time directives instead of reflection.
 
 namespace ShadowEscape
@@ -100,22 +103,60 @@ namespace ShadowEscape
 
         private bool GetMouseButtonDown(int button)
         {
+#if ENABLE_INPUT_SYSTEM
+            if (button == 0)
+                return Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame;
+            return false;
+#else
+            return Input.GetMouseButtonDown(button);
+#endif
         }
 
         private bool GetMouseButton(int button)
         {
+#if ENABLE_INPUT_SYSTEM
+            if (button == 0)
+                return Mouse.current != null && Mouse.current.leftButton.isPressed;
+            return false;
+#else
+            return Input.GetMouseButton(button);
+#endif
         }
 
         private bool GetMouseButtonUp(int button)
         {
+#if ENABLE_INPUT_SYSTEM
+            if (button == 0)
+                return Mouse.current != null && Mouse.current.leftButton.wasReleasedThisFrame;
+            return false;
+#else
+            return Input.GetMouseButtonUp(button);
+#endif
         }
 
         private Vector3 GetMousePosition()
         {
+#if ENABLE_INPUT_SYSTEM
+            var mouse = Mouse.current;
+            if (mouse != null)
+            {
+                var pos = mouse.position.ReadValue();
+                return new Vector3(pos.x, pos.y, 0f);
+            }
+            return Vector3.zero;
+#else
+            return Input.mousePosition;
+#endif
         }
 
         private bool IsShiftPressed()
         {
+#if ENABLE_INPUT_SYSTEM
+            var kb = Keyboard.current;
+            return kb != null && (kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed);
+#else
+            return Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+#endif
         }
 
         private void TrySelectPieceUnderMouse()

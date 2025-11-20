@@ -227,8 +227,21 @@ namespace ShadowEscape
             {
                 var pair = pairs[i];
                 if (pair.piece == null || pair.target == null) { allCorrect = false; continue; }
-                pair.piece.IsCorrect = pair.target.CheckIsCorrect(pair.piece.transform);
-                if (!pair.piece.IsCorrect) allCorrect = false;
+                bool wasCorrect = pair.piece.IsCorrect;
+                bool nowCorrect = pair.target.CheckIsCorrect(pair.piece.transform);
+                pair.piece.IsCorrect = nowCorrect;
+                if (!nowCorrect) allCorrect = false;
+
+                if (!wasCorrect && nowCorrect)
+                {
+                    float posDist = Vector3.Distance(pair.piece.transform.position, pair.target.transform.position);
+                    float rotAngle = Quaternion.Angle(pair.piece.transform.rotation, pair.target.transform.rotation);
+                    Debug.Log(
+                        $"[LevelManager] Piece matched: {pair.piece.name} -> Target {pair.target.name}\n" +
+                        $"Distance={posDist:F4} (tol {pair.target.positionTolerance:F4}), Angle={rotAngle:F2} (tol {pair.target.rotationTolerance:F2})\n" +
+                        $"PiecePos={pair.piece.transform.position:F3} TargetPos={pair.target.transform.position:F3}\n" +
+                        $"PieceRot={pair.piece.transform.rotation.eulerAngles:F1} TargetRot={pair.target.transform.rotation.eulerAngles:F1}");
+                }
             }
 
             if (allCorrect && !levelCompletionTriggered)
@@ -236,6 +249,7 @@ namespace ShadowEscape
                 levelCompletionTriggered = true;
                 completionMessage = "Level Complete!";
                 completionMessageTime = Time.time;
+                Debug.Log($"[LevelManager] All pieces correct — signaling completion (levelIndex={levelIndex}, stars={starsToGrant}).");
                 // Report completion to GameManager
                 if (GameManager.Instance != null)
                 {

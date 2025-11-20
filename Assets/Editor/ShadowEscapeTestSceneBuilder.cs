@@ -54,16 +54,18 @@ public static class ShadowEscapeTestSceneBuilder
         var lmGO = new GameObject("LevelManager");
         var lm = lmGO.AddComponent<ShadowEscape.LevelManager>();
 
-        // Piece (cube)
-        var pieceGO = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        pieceGO.name = "Piece_Cube";
-        pieceGO.transform.position = new Vector3(-0.5f, 0.5f, 0f);
+    // Piece (cube) - 시작 위치
+    var pieceGO = GameObject.CreatePrimitive(PrimitiveType.Cube);
+    pieceGO.name = "Piece_Cube";
+    pieceGO.transform.position = new Vector3(-0.5f, 0.5f, 0f);
         var piece = pieceGO.AddComponent<ShadowEscape.Piece>();
         // Collider는 이미 존재 (BoxCollider) - 레이캐스트 선택을 위해 Rigidbody를 추가하지 않음
 
-        // Target (empty)
-        var targetGO = new GameObject("Target_Cube");
-        targetGO.transform.position = pieceGO.transform.position; // 정답 위치로 동일하게 세팅
+    // Target (empty) - 바로 정답이 되지 않도록 약간 위치/회전 차이를 둔다.
+    var targetGO = new GameObject("Target_Cube");
+    // 위치는 약간 offset, 회전도 약간 변경 (Tolerance 기본값을 넘어가도록)
+    targetGO.transform.position = pieceGO.transform.position + new Vector3(0.25f, 0.0f, 0.15f);
+    targetGO.transform.rotation = pieceGO.transform.rotation * Quaternion.Euler(0f, 25f, 0f);
         var target = targetGO.AddComponent<ShadowEscape.TargetPiece>();
         // target는 보이지 않도록 MeshRenderer 없음
 
@@ -79,7 +81,10 @@ public static class ShadowEscapeTestSceneBuilder
         // 포커스: 씬을 에디터에서 열어줌
         EditorSceneManager.OpenScene(scenePath);
 
-        Debug.Log("ShadowEscape test scene created at " + scenePath + " — open it in the Editor to test.");
+        Debug.Log("[ShadowEscapeTestSceneBuilder] Test scene created at: " + scenePath +
+                  "\nPiece initial position: " + pieceGO.transform.position.ToString("F3") +
+                  "\nTarget initial position: " + targetGO.transform.position.ToString("F3") +
+                  "\nRotation offset applied (Y +25°) so puzzle is NOT solved initially.");
     }
 }
 #endif

@@ -14,7 +14,6 @@ namespace ShadowEscape
         // 각 레벨에서 획득한 별 개수 (0~3)
         public int[] starsEarnedAtLevel;
 
-        // 생성자: 초기 저장 데이터를 만듭니다.
         // totalLevels: 게임의 총 레벨 개수
         public SaveData(int totalLevels)
         {

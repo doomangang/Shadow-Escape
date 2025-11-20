@@ -2,8 +2,8 @@ using UnityEngine;
 
 namespace ShadowEscape
 {
-    // 정답 판정용 타겟 객체 (보통 MeshRenderer는 꺼둡니다)
-    // TargetPiece의 Transform이 정답 위치/회전을 정의합니다.
+    // 정답 판정용 타겟 객체
+    // TargetPiece의 Transform이 정답 위치/회전을 정의.
     public class TargetPiece : MonoBehaviour
     {
         [Header("Validation Tolerances")]

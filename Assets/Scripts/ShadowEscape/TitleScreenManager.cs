@@ -18,7 +18,6 @@ namespace ShadowEscape
 
         private void Awake()
         {
-            // GameManager 싱글톤 확보 (필요시 자동 생성됨)
             _ = GameManager.Instance;
         }
 

@@ -5,6 +5,9 @@ namespace ShadowEscape
     [Serializable]
     public class SaveData
     {
+        // Increment this when changing the save data schema so GameManager can migrate old saves.
+        public int saveVersion = 1;
+
         // 각 레벨의 잠금 해제 여부
         public bool[] isLevelAvailable;
 

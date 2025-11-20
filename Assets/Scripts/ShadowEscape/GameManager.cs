@@ -75,7 +75,51 @@ namespace ShadowEscape
             if (PlayerPrefs.HasKey("save"))
             {
                 string json = PlayerPrefs.GetString("save");
-                CurrentSave = JsonUtility.FromJson<SaveData>(json);
+                try
+                {
+                    CurrentSave = JsonUtility.FromJson<SaveData>(json);
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogWarning("Save data corrupted or incompatible, creating new save. " + ex.Message);
+                    CurrentSave = new SaveData(totalLevels);
+                    SaveGame();
+                    return;
+                }
+
+                // Migrate or resize arrays if save format doesn't match current totalLevels
+                if (CurrentSave == null)
+                {
+                    CurrentSave = new SaveData(totalLevels);
+                }
+
+                // Ensure arrays have correct lengths
+                if (CurrentSave.isLevelAvailable == null || CurrentSave.isLevelAvailable.Length != totalLevels ||
+                    CurrentSave.starsEarnedAtLevel == null || CurrentSave.starsEarnedAtLevel.Length != totalLevels)
+                {
+                    // Preserve what we can
+                    bool[] oldAvail = CurrentSave.isLevelAvailable;
+                    int[] oldStars = CurrentSave.starsEarnedAtLevel;
+
+                    SaveData newSave = new SaveData(totalLevels);
+                    int copyLen = 0;
+                    if (oldAvail != null)
+                        copyLen = Mathf.Min(oldAvail.Length, newSave.isLevelAvailable.Length);
+
+                    for (int i = 0; i < copyLen; i++)
+                        newSave.isLevelAvailable[i] = oldAvail[i];
+
+                    copyLen = 0;
+                    if (oldStars != null)
+                        copyLen = Mathf.Min(oldStars.Length, newSave.starsEarnedAtLevel.Length);
+
+                    for (int i = 0; i < copyLen; i++)
+                        newSave.starsEarnedAtLevel[i] = oldStars[i];
+
+                    CurrentSave = newSave;
+                    SaveGame();
+                }
+
                 Debug.Log("저장된 게임 불러오기 완료!");
             }
             else

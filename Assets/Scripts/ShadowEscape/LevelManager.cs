@@ -32,7 +32,8 @@ namespace ShadowEscape
     private bool levelCompletionTriggered = false;
 
     [Header("Debug / UI")]
-    public bool showDebugOverlay = true;
+    [Tooltip("Show debug overlay in Editor. Disabled by default for grading builds.")]
+    [SerializeField] private bool showDebugOverlay = false;
     private string completionMessage;
     private float completionMessageTime;
     public float completionMessageDuration = 3f;
@@ -40,6 +41,14 @@ namespace ShadowEscape
         // 감도 설정
         public float rotateSpeed = 15f;
         public float moveSpeed = 0.01f;
+
+        [Header("Input / Validation")]
+        [Tooltip("If true, use the subject-required input mapping: LMB drag = horizontal, LMB+Ctrl = vertical, LMB+Shift = move")]
+        [SerializeField] private bool useSubjectInputScheme = true;
+
+        [Tooltip("Minimum interval (seconds) between automatic validation runs; validation is also run when interaction ends")]
+        [SerializeField] private float validationInterval = 0.1f;
+        private float lastValidationTime = 0f;
 
         private void Start()
         {
@@ -62,8 +71,13 @@ namespace ShadowEscape
         private void Update()
         {
             HandleInput();
-            // 매 프레임 정답 여부 검사 (성능 문제가 생기면 조절)
-            ValidateAllPieces();
+
+            // Periodic validation to avoid running a heavy check every frame.
+            if (Time.time - lastValidationTime >= validationInterval)
+            {
+                ValidateAllPieces();
+                lastValidationTime = Time.time;
+            }
         }
 
         private void HandleInput()
@@ -79,14 +93,31 @@ namespace ShadowEscape
             {
                 Vector3 mouseDelta = GetMousePosition() - lastMousePos;
 
-                if (IsShiftPressed())
+                if (useSubjectInputScheme)
                 {
-                    float dx = mouseDelta.x * moveSpeed;
-                    float dy = mouseDelta.y * moveSpeed;
-                    selectedPiece.Move(dx, dy);
+                    // Subject-required mapping: Shift = move, Ctrl = vertical rotate, otherwise horizontal rotate
+                    if (IsShiftPressed())
+                    {
+                        float dx = mouseDelta.x * moveSpeed;
+                        float dy = mouseDelta.y * moveSpeed;
+                        selectedPiece.Move(dx, dy);
+                    }
+                    else if (IsCtrlPressed())
+                    {
+                        // vertical rotation only (mouse Y)
+                        float ry = -1 * mouseDelta.y * rotateSpeed * Time.deltaTime;
+                        selectedPiece.Rotate(0f, ry);
+                    }
+                    else
+                    {
+                        // horizontal rotation only (mouse X)
+                        float rx = -1 * mouseDelta.x * rotateSpeed * Time.deltaTime;
+                        selectedPiece.Rotate(rx, 0f);
+                    }
                 }
                 else
                 {
+                    // backward-compatible behavior: both axes
                     float rx = -1 * mouseDelta.x * rotateSpeed * Time.deltaTime;
                     float ry = -1 * mouseDelta.y * rotateSpeed * Time.deltaTime;
                     selectedPiece.Rotate(rx, ry);
@@ -97,7 +128,10 @@ namespace ShadowEscape
 
             if (GetMouseButtonUp(0))
             {
+                // interaction ended -> run validation immediately
                 selectedPiece = null;
+                ValidateAllPieces();
+                lastValidationTime = Time.time;
             }
         }
 
@@ -158,6 +192,16 @@ namespace ShadowEscape
             return Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
 #endif
         }
+
+    private bool IsCtrlPressed()
+    {
+#if ENABLE_INPUT_SYSTEM
+        var kb = Keyboard.current;
+        return kb != null && (kb.leftCtrlKey.isPressed || kb.rightCtrlKey.isPressed);
+#else
+        return Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+#endif
+    }
 
         private void TrySelectPieceUnderMouse()
         {

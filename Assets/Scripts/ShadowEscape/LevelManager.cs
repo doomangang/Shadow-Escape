@@ -50,9 +50,26 @@ namespace ShadowEscape
         [SerializeField] private float validationInterval = 0.1f;
         private float lastValidationTime = 0f;
 
+        private LevelMetadata _metadata; // 난이도/힌트 데이터
+        private DifficultyTier _effectiveDifficulty = DifficultyTier.Hard; // 기본값 (제약 없음)
+
         private void Start()
         {
             mainCamera = Camera.main;
+
+            // LevelMetadata 자동 탐색
+            _metadata = FindObjectOfType<LevelMetadata>();
+            if (_metadata != null)
+            {
+                _effectiveDifficulty = _metadata.difficulty;
+                // 레벨 인덱스 동기화(있다면)
+                levelIndex = _metadata.levelIndex;
+                Debug.Log($"[LevelManager] Difficulty={_effectiveDifficulty}, levelIndex={levelIndex}, hint='{_metadata.titleHint}'");
+            }
+            else
+            {
+                Debug.LogWarning("[LevelManager] LevelMetadata 없음 - Hard로 간주");
+            }
 
             // 자동 수집: 페어가 비어있을 때는 씬의 Piece/Target을 찾아 자동으로 매칭 시도
             if (pairs.Count == 0)
@@ -95,32 +112,56 @@ namespace ShadowEscape
 
                 if (useSubjectInputScheme)
                 {
-                    // Subject-required mapping: Shift = move, Ctrl = vertical rotate, otherwise horizontal rotate
+                    // 난이도별 허용 동작 결정
+                    bool allowMove = _effectiveDifficulty == DifficultyTier.Hard; // Hard만 이동 허용
+                    bool allowVertical = _effectiveDifficulty == DifficultyTier.Medium || _effectiveDifficulty == DifficultyTier.Hard; // Medium 이상에서 수직 회전 허용
+                    bool allowHorizontal = true; // 모든 난이도에서 수평 회전 허용
+
                     if (IsShiftPressed())
                     {
-                        float dx = mouseDelta.x * moveSpeed;
-                        float dy = mouseDelta.y * moveSpeed;
-                        selectedPiece.Move(dx, dy);
+                        if (allowMove)
+                        {
+                            float dx = mouseDelta.x * moveSpeed;
+                            float dy = mouseDelta.y * moveSpeed;
+                            selectedPiece.Move(dx, dy);
+                        }
+                        // 이동 불허 난이도면 무시
                     }
                     else if (IsCtrlPressed())
                     {
-                        // vertical rotation only (mouse Y)
-                        float ry = -1 * mouseDelta.y * rotateSpeed * Time.deltaTime;
-                        selectedPiece.Rotate(0f, ry);
+                        if (allowVertical)
+                        {
+                            float ry = -1 * mouseDelta.y * rotateSpeed * Time.deltaTime;
+                            selectedPiece.Rotate(0f, ry);
+                        }
+                        else
+                        {
+                            // 수직 회전 불허 시 무시하고(혹은 수평으로 대체 가능) 아무 것도 하지 않음
+                        }
                     }
                     else
                     {
-                        // horizontal rotation only (mouse X)
-                        float rx = -1 * mouseDelta.x * rotateSpeed * Time.deltaTime;
-                        selectedPiece.Rotate(rx, 0f);
+                        if (allowHorizontal)
+                        {
+                            float rx = -1 * mouseDelta.x * rotateSpeed * Time.deltaTime;
+                            selectedPiece.Rotate(rx, 0f);
+                        }
                     }
                 }
                 else
                 {
-                    // backward-compatible behavior: both axes
+                    // 이전 호환 모드: 난이도 적용 (Easy면 수평만, Medium은 수평+수직, Hard는 이동 제외한 여기서는 회전 전부)
+                    bool allowVertical = _effectiveDifficulty != DifficultyTier.Easy;
                     float rx = -1 * mouseDelta.x * rotateSpeed * Time.deltaTime;
                     float ry = -1 * mouseDelta.y * rotateSpeed * Time.deltaTime;
-                    selectedPiece.Rotate(rx, ry);
+                    if (!allowVertical)
+                    {
+                        selectedPiece.Rotate(rx, 0f);
+                    }
+                    else
+                    {
+                        selectedPiece.Rotate(rx, ry);
+                    }
                 }
 
                 lastMousePos = GetMousePosition();

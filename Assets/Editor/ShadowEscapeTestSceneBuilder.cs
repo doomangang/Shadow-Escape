@@ -46,11 +46,9 @@ public static class ShadowEscapeTestSceneBuilder
             light.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
         }
 
-        // GameManager 생성
         var gmGO = new GameObject("GameManager");
         gmGO.AddComponent<ShadowEscape.GameManager>();
 
-        // LevelManager 생성
         var lmGO = new GameObject("LevelManager");
         var lm = lmGO.AddComponent<ShadowEscape.LevelManager>();
 
@@ -69,16 +67,13 @@ public static class ShadowEscapeTestSceneBuilder
         var target = targetGO.AddComponent<ShadowEscape.TargetPiece>();
         // target는 보이지 않도록 MeshRenderer 없음
 
-        // 페어 추가
         lm.pairs.Add(new ShadowEscape.LevelManager.PieceTargetPair { piece = piece, target = target });
 
-        // 씬 저장
         string scenePath = "Assets/Scenes/ShadowEscape_TestScene.unity";
 
         System.IO.Directory.CreateDirectory("Assets/Scenes");
         EditorSceneManager.SaveScene(scene, scenePath);
 
-        // 포커스: 씬을 에디터에서 열어줌
         EditorSceneManager.OpenScene(scenePath);
 
         Debug.Log("[ShadowEscapeTestSceneBuilder] Test scene created at: " + scenePath +

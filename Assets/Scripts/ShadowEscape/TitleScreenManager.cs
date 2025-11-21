@@ -28,7 +28,7 @@ namespace ShadowEscape
                 Debug.LogWarning("LevelSelect 씬 이름이 설정되지 않았습니다.");
                 return;
             }
-            GameManager.Instance.LoadScene(levelSelectSceneName);
+            SceneFlowManager.Instance.LoadLevelSelect();
         }
 
         public void SetTesterMode(bool isTester)
@@ -42,13 +42,13 @@ namespace ShadowEscape
             GameManager.Instance.ResetSaveData();
         }
 
-        public void QuitGame()
-        {
+    public void QuitGame()
+    {
 #if UNITY_EDITOR
-            EditorApplication.isPlaying = false;
+        EditorApplication.isPlaying = false;
 #else
-            Application.Quit();
+        Application.Quit();
 #endif
-        }
+    }
     }
 }

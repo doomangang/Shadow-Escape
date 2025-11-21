@@ -58,7 +58,7 @@ namespace ShadowEscape
 
         public void LoadLevel(int levelIndex)
         {
-            if (levelIndex < 0 || levelIndex >= levelSceneNames.Count)
+            if (levelIndex < 0 || levelSceneNames == null || levelIndex >= levelSceneNames.Count)
             {
                 Debug.LogWarning($"잘못된 레벨 인덱스: {levelIndex}");
                 return;
@@ -70,14 +70,7 @@ namespace ShadowEscape
                 return;
             }
 
-            string sceneName = levelSceneNames[levelIndex];
-            if (string.IsNullOrEmpty(sceneName))
-            {
-                Debug.LogWarning($"레벨 {levelIndex} 의 씬 이름이 비어있습니다.");
-                return;
-            }
-
-            GameManager.Instance.LoadScene(sceneName);
+            SceneFlowManager.Instance.LoadLevel(levelIndex);
         }
 
         // 에디터에서 테스트용으로 현재 씬을 재시작할 수 있는 헬퍼

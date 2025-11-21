@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -19,6 +21,33 @@ namespace ShadowEscape
         private void Awake()
         {
             _ = GameManager.Instance; // Ensure GameManager exists
+
+            // If no scene names supplied in inspector, try to auto-populate from Assets/Scenes
+            if (levelSceneNames == null || levelSceneNames.Count == 0)
+            {
+                try
+                {
+                    var sceneFiles = Directory.Exists("Assets/Scenes")
+                        ? Directory.GetFiles("Assets/Scenes", "*.unity", SearchOption.TopDirectoryOnly)
+                        : new string[0];
+
+                    var names = sceneFiles
+                        .Select(Path.GetFileNameWithoutExtension)
+                        .Where(n => !string.IsNullOrEmpty(n))
+                        .OrderBy(n => n)
+                        .ToList();
+
+                    if (names.Count > 0)
+                    {
+                        levelSceneNames = names;
+                        Debug.Log($"[LevelSelectManager] Auto-populated {names.Count} level scene names from Assets/Scenes.");
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogWarning("Failed to auto-populate levelSceneNames: " + ex.Message);
+                }
+            }
         }
 
         public bool IsLevelUnlocked(int levelIndex)

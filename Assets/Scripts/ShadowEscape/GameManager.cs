@@ -26,6 +26,10 @@ namespace ShadowEscape
 
         // ========== 게임 설정 ==========
         [SerializeField] private int totalLevels = 10;
+        
+    // Pause 상태
+    private bool _isPaused = false;
+    public bool IsPaused => _isPaused;
 
         // Test Mode 플래그
         // true: 모든 레벨 잠금 해제
@@ -49,6 +53,15 @@ namespace ShadowEscape
 
             DontDestroyOnLoad(gameObject);
             LoadGame();
+        }
+
+        // ========== 일시정지 ==========
+        public void SetPaused(bool paused)
+        {
+            if (_isPaused == paused) return;
+            _isPaused = paused;
+            Time.timeScale = paused ? 0f : 1f;
+            Debug.Log($"[GameManager] Pause state changed: {paused}");
         }
 
         // ========== 저장/로드 시스템 ==========

@@ -116,6 +116,11 @@ namespace ShadowEscape
 
         private void Update()
         {
+            // Pause 중에는 입력/검증을 중단
+            if (GameManager.Instance != null && GameManager.Instance.IsPaused)
+            {
+                return;
+            }
             HandleInput();
 
             // Periodic validation to avoid running a heavy check every frame.
@@ -128,6 +133,10 @@ namespace ShadowEscape
 
         private void HandleInput()
         {
+            if (GameManager.Instance != null && GameManager.Instance.IsPaused)
+            {
+                return;
+            }
             if (GetMouseButtonDown(0))
             {
                 lastMousePos = GetMousePosition();

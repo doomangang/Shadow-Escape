@@ -13,9 +13,9 @@ namespace ShadowEscape
 
         [Header("Difficulty")]
         [Tooltip("난이도 단계: Easy=수평 회전만, Medium=수평+수직 회전, Hard=회전+이동")] public DifficultyTier difficulty = DifficultyTier.Easy;
-
-        // tolerance는 Unify 단계(#15)에서 TargetPiece에 주입하는 용도로 추가 예정
-        //[Header("Validation Tolerances (Future Injection)")] public float positionTolerance = 0.1f; // placeholder
-        //[Tooltip("Rotation degree tolerance")] public float rotationTolerance = 5f; // placeholder
+        
+        [Header("Validation Tolerances (Unified)")]
+        [Tooltip("Global position tolerance (meters) applied to all TargetPiece instances at runtime.")] public float positionTolerance = 0.1f;
+        [Tooltip("Global rotation tolerance (degrees) applied to all TargetPiece instances at runtime.")] public float rotationTolerance = 5f;
     }
 }

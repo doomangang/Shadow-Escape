@@ -65,6 +65,9 @@ namespace ShadowEscape
                 // 레벨 인덱스 동기화(있다면)
                 levelIndex = _metadata.levelIndex;
                 Debug.Log($"[LevelManager] Difficulty={_effectiveDifficulty}, levelIndex={levelIndex}, hint='{_metadata.titleHint}'");
+
+                // Unified tolerance injection (#15)
+                InjectUnifiedTolerances(_metadata.positionTolerance, _metadata.rotationTolerance);
             }
             else
             {
@@ -83,6 +86,32 @@ namespace ShadowEscape
                     pairs.Add(new PieceTargetPair { piece = scenePieces[i], target = sceneTargets[i] });
                 }
             }
+        }
+
+        // 모든 TargetPiece에 메타데이터 tolerance 주입 (씬 내 editor 값 무시, 중앙관리)
+        private void InjectUnifiedTolerances(float posTol, float rotTol)
+        {
+            int updated = 0;
+            for (int i = 0; i < pairs.Count; i++)
+            {
+                if (pairs[i].target != null)
+                {
+                    pairs[i].target.positionTolerance = posTol;
+                    pairs[i].target.rotationTolerance = rotTol;
+                    updated++;
+                }
+            }
+
+            // 자동 수집된 pair 외 추가 TargetPiece (만약 존재)도 커버
+            var allTargets = Object.FindObjectsByType<TargetPiece>(FindObjectsSortMode.None);
+            foreach (var t in allTargets)
+            {
+                // 위에서 이미 설정된 경우라도 재설정 무해; 단순 동기화
+                t.positionTolerance = posTol;
+                t.rotationTolerance = rotTol;
+            }
+
+            Debug.Log($"[LevelManager] Injected unified tolerances (pos={posTol:F3}, rot={rotTol:F1}) into {allTargets.Length} TargetPiece(s). (pairs updated={updated})");
         }
 
         private void Update()

@@ -1,0 +1,154 @@
+using UnityEngine;
+using UnityEngine.UI;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
+namespace ShadowEscape
+{
+    /// <summary>
+    /// Handles showing the pause overlay, syncing tester-required audio options,
+    /// and exposing core navigation buttons.
+    /// </summary>
+    public class PauseMenuManager : MonoBehaviour
+    {
+        [SerializeField] private GameObject root;
+        [SerializeField] private Slider volumeSlider;
+        [SerializeField] private Toggle muteToggle;
+
+        private void Awake()
+        {
+            if (root != null)
+            {
+                root.SetActive(false);
+            }
+        }
+
+        private void OnEnable()
+        {
+            if (volumeSlider != null)
+            {
+                volumeSlider.onValueChanged.AddListener(OnVolumeChanged);
+            }
+
+            if (muteToggle != null)
+            {
+                muteToggle.onValueChanged.AddListener(OnMuteToggled);
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (volumeSlider != null)
+            {
+                volumeSlider.onValueChanged.RemoveListener(OnVolumeChanged);
+            }
+
+            if (muteToggle != null)
+            {
+                muteToggle.onValueChanged.RemoveListener(OnMuteToggled);
+            }
+        }
+
+        public void Show()
+        {
+            if (root != null)
+            {
+                root.SetActive(true);
+            }
+
+            GameManager.Instance?.SetPaused(true);
+            SyncAudioControls();
+        }
+
+        public void Hide()
+        {
+            if (root != null)
+            {
+                root.SetActive(false);
+            }
+
+            GameManager.Instance?.SetPaused(false);
+        }
+
+        public void ToggleMenu()
+        {
+            if (root == null)
+            {
+                return;
+            }
+
+            if (root.activeSelf)
+            {
+                Hide();
+            }
+            else
+            {
+                Show();
+            }
+        }
+
+        public void OnRestart()
+        {
+            Hide();
+            SceneFlowManager.Instance?.ReloadCurrent();
+        }
+
+        public void OnReturnToMenu()
+        {
+            Hide();
+            SceneFlowManager.Instance?.LoadLevelSelect();
+        }
+
+        public void OnQuit()
+        {
+            Hide();
+#if UNITY_EDITOR
+            EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
+        }
+
+        public void OnVolumeChanged(float value)
+        {
+            if (AudioManager.Instance == null)
+            {
+                return;
+            }
+
+            AudioManager.Instance.SetVolume(value);
+            if (muteToggle != null)
+            {
+                muteToggle.SetIsOnWithoutNotify(AudioManager.Instance.IsMuted);
+            }
+        }
+
+        public void OnMuteToggled(bool isMuted)
+        {
+            AudioManager.Instance?.ToggleMute(isMuted);
+            if (volumeSlider != null && AudioManager.Instance != null && isMuted)
+            {
+                volumeSlider.SetValueWithoutNotify(AudioManager.Instance.MasterVolume);
+            }
+        }
+
+        private void SyncAudioControls()
+        {
+            if (AudioManager.Instance == null)
+            {
+                return;
+            }
+
+            if (volumeSlider != null)
+            {
+                volumeSlider.SetValueWithoutNotify(AudioManager.Instance.MasterVolume);
+            }
+
+            if (muteToggle != null)
+            {
+                muteToggle.SetIsOnWithoutNotify(AudioManager.Instance.IsMuted);
+            }
+        }
+    }
+}

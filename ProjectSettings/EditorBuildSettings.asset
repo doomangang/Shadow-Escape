@@ -6,6 +6,24 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/00_Title.unity
+    guid: 8a1c7cd5369b4d4595cf3a3c6a8030d7
+  - enabled: 1
+    path: Assets/Scenes/01_LevelSelect.unity
+    guid: c2b9ddc4f18f4f5aa650343d4aa2f6f5
+  - enabled: 1
+    path: Assets/Scenes/Level_Easy.unity
+    guid: 4f7c51479d664d519ce7f284b9c5da50
+  - enabled: 1
+    path: Assets/Scenes/Level_Medium.unity
+    guid: b6dfb652f7ec47c6a03641726b0df65d
+  - enabled: 1
+    path: Assets/Scenes/Level_Hard.unity
+    guid: f815d71f6a984a4f9b427006c1c2afe1
+  - enabled: 1
+    path: Assets/Scenes/ShadowEscape_TestScene.unity
+    guid: 32555d240fc9749b68f175f01434f2bb
+  - enabled: 1
     path: Assets/OutdoorsScene.unity
     guid: 8124e5870f4fd4c779e7a5f994e84ad1
   m_configObjects:

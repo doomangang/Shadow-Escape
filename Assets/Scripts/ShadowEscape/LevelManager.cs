@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityObject = UnityEngine.Object;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -42,49 +44,70 @@ namespace ShadowEscape
         public float rotateSpeed = 15f;
         public float moveSpeed = 0.01f;
 
-        [Header("Input / Validation")]
-        [Tooltip("If true, use the subject-required input mapping: LMB drag = horizontal, LMB+Ctrl = vertical, LMB+Shift = move")]
-        [SerializeField] private bool useSubjectInputScheme = true;
+    [Header("Input / Validation")]
+    [Tooltip("If true, use the subject-required input mapping: LMB drag = horizontal, LMB+Ctrl = vertical, LMB+Shift = move")]
+    [SerializeField] private bool useSubjectInputScheme = true;
 
-        [Tooltip("Minimum interval (seconds) between automatic validation runs; validation is also run when interaction ends")]
-        [SerializeField] private float validationInterval = 0.1f;
-        private float lastValidationTime = 0f;
+    [Tooltip("Minimum interval (seconds) between automatic validation runs; validation is also run when interaction ends")]
+    [SerializeField] private float validationInterval = 0.1f;
+    private float lastValidationTime = 0f;
 
-        private LevelMetadata _metadata; // 난이도/힌트 데이터
-        private DifficultyTier _effectiveDifficulty = DifficultyTier.Hard; // 기본값 (제약 없음)
+    [Header("UI Hooks")]
+    [SerializeField] private LevelHintDisplay hintDisplay;
+
+    private LevelMetadata _metadata; // 난이도/힌트 데이터
+    private DifficultyTier _effectiveDifficulty = DifficultyTier.Hard; // 기본값 (제약 없음)
 
         private void Start()
         {
             mainCamera = Camera.main;
 
+            if (hintDisplay == null)
+            {
+                hintDisplay = UnityObject.FindFirstObjectByType<LevelHintDisplay>(FindObjectsInactive.Include);
+            }
+
             // LevelMetadata 자동 탐색
-            _metadata = FindObjectOfType<LevelMetadata>();
+            _metadata = UnityObject.FindFirstObjectByType<LevelMetadata>(FindObjectsInactive.Exclude);
             if (_metadata != null)
             {
-                _effectiveDifficulty = _metadata.difficulty;
-                // 레벨 인덱스 동기화(있다면)
-                levelIndex = _metadata.levelIndex;
-                Debug.Log($"[LevelManager] Difficulty={_effectiveDifficulty}, levelIndex={levelIndex}, hint='{_metadata.titleHint}'");
-
-                // Unified tolerance injection (#15)
-                InjectUnifiedTolerances(_metadata.positionTolerance, _metadata.rotationTolerance);
+                ApplyMetadata(_metadata);
             }
             else
             {
                 Debug.LogWarning("[LevelManager] LevelMetadata 없음 - Hard로 간주");
+                hintDisplay?.ClearHint();
             }
 
             // 자동 수집: 페어가 비어있을 때는 씬의 Piece/Target을 찾아 자동으로 매칭 시도
             if (pairs.Count == 0)
             {
-                var scenePieces = Object.FindObjectsByType<Piece>(FindObjectsSortMode.None);
-                var sceneTargets = Object.FindObjectsByType<TargetPiece>(FindObjectsSortMode.None);
+                var scenePieces = UnityObject.FindObjectsByType<Piece>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+                var sceneTargets = UnityObject.FindObjectsByType<TargetPiece>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
 
                 int count = Mathf.Min(scenePieces.Length, sceneTargets.Length);
                 for (int i = 0; i < count; i++)
                 {
                     pairs.Add(new PieceTargetPair { piece = scenePieces[i], target = sceneTargets[i] });
                 }
+            }
+        }
+
+        private void ApplyMetadata(LevelMetadata metadata)
+        {
+            _effectiveDifficulty = metadata.difficulty;
+            levelIndex = metadata.levelIndex;
+            Debug.Log($"[LevelManager] Metadata applied (difficulty={_effectiveDifficulty}, levelIndex={levelIndex})");
+
+            InjectUnifiedTolerances(metadata.positionTolerance, metadata.rotationTolerance);
+
+            if (!string.IsNullOrWhiteSpace(metadata.titleHint))
+            {
+                hintDisplay?.ShowHint(metadata.titleHint);
+            }
+            else
+            {
+                hintDisplay?.ClearHint();
             }
         }
 
@@ -103,7 +126,7 @@ namespace ShadowEscape
             }
 
             // 자동 수집된 pair 외 추가 TargetPiece (만약 존재)도 커버
-            var allTargets = Object.FindObjectsByType<TargetPiece>(FindObjectsSortMode.None);
+            var allTargets = UnityObject.FindObjectsByType<TargetPiece>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
             foreach (var t in allTargets)
             {
                 // 위에서 이미 설정된 경우라도 재설정 무해; 단순 동기화
@@ -329,11 +352,19 @@ namespace ShadowEscape
                 completionMessage = "Level Complete!";
                 completionMessageTime = Time.time;
                 Debug.Log($"[LevelManager] All pieces correct — signaling completion (levelIndex={levelIndex}, stars={starsToGrant}).");
-                // Report completion to GameManager
-                if (GameManager.Instance != null)
-                {
-                    GameManager.Instance.CompleteLevel(levelIndex, starsToGrant);
-                }
+                HandleLevelCompletion();
+            }
+        }
+
+        private void HandleLevelCompletion()
+        {
+            if (SceneFlowManager.Instance != null)
+            {
+                SceneFlowManager.Instance.OnLevelCompleted(starsToGrant);
+            }
+            else if (GameManager.Instance != null)
+            {
+                GameManager.Instance.CompleteLevel(levelIndex, starsToGrant);
             }
         }
 

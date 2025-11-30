@@ -1,9 +1,10 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System;
+using UnityObject = UnityEngine.Object;
 
 namespace ShadowEscape
 {
@@ -18,7 +19,7 @@ namespace ShadowEscape
             {
                 if (_instance == null)
                 {
-                    _instance = FindObjectOfType<SceneFlowManager>();
+                    _instance = UnityObject.FindFirstObjectByType<SceneFlowManager>(FindObjectsInactive.Exclude);
                     if (_instance == null)
                     {
                         var go = new GameObject("SceneFlowManager");
@@ -33,8 +34,14 @@ namespace ShadowEscape
         [Tooltip("타이틀 씬 이름")] public string titleSceneName = "00_Title";
         [Tooltip("레벨 선택 씬 이름")] public string levelSelectSceneName = "01_LevelSelect";
 
-        public string CurrentSceneName { get; private set; }
-        public int CurrentLevelIndex { get; private set; } = -1;
+    public string CurrentSceneName { get; private set; }
+    public int CurrentLevelIndex { get; private set; } = -1;
+
+    [Header("UI References")]
+    [Tooltip("Optional prefab used when a CompletionUI cannot be found in the loaded scene. Will be instantiated once and persisted across scenes.")]
+    [SerializeField] private CompletionUI completionUIPrefab;
+
+    private CompletionUI _completionUI;
 
         private void Awake()
         {
@@ -46,6 +53,15 @@ namespace ShadowEscape
             _instance = this;
             DontDestroyOnLoad(gameObject);
             InitializeSceneList();
+            SceneManager.sceneLoaded += HandleSceneLoaded;
+        }
+
+        private void OnDestroy()
+        {
+            if (_instance == this)
+            {
+                SceneManager.sceneLoaded -= HandleSceneLoaded;
+            }
         }
 
         public void InitializeSceneList()
@@ -132,16 +148,80 @@ namespace ShadowEscape
             }
             SceneManager.LoadScene(sceneName);
             CurrentSceneName = sceneName;
+            _completionUI = null;
+            AudioManager.Instance?.PlayBGMForScene(sceneName);
         }
 
-        // 레벨 완료 후 후속 처리 (Completion UI 연동 예정)
+        private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            CurrentSceneName = scene.name;
+            _completionUI = null;
+            AudioManager.Instance?.PlayBGMForScene(scene.name);
+        }
+
+        private CompletionUI GetCompletionUI()
+        {
+            if (_completionUI == null)
+            {
+                _completionUI = UnityObject.FindFirstObjectByType<CompletionUI>(FindObjectsInactive.Include);
+                if (_completionUI == null && completionUIPrefab != null)
+                {
+                    _completionUI = Instantiate(completionUIPrefab);
+                    DontDestroyOnLoad(_completionUI.gameObject);
+                    _completionUI.Hide();
+                }
+            }
+
+            return _completionUI;
+        }
+
+        // 레벨 완료 후 후속 처리 (Completion UI 연동)
         public void OnLevelCompleted(int stars)
         {
-            if (GameManager.Instance != null && CurrentLevelIndex >= 0)
+            if (CurrentLevelIndex >= 0 && GameManager.Instance != null)
             {
                 GameManager.Instance.CompleteLevel(CurrentLevelIndex, stars);
             }
-            // 이후: CompletionUI.Show(...) / 다음 레벨 자동 로드 등 확장 가능
+
+            var completionUI = GetCompletionUI();
+            if (completionUI != null)
+            {
+                completionUI.Show(
+                    stars,
+                    () =>
+                    {
+                        completionUI.Hide();
+                        HandleCompletionNext();
+                    },
+                    () =>
+                    {
+                        completionUI.Hide();
+                        HandleCompletionRetry();
+                    });
+            }
+            else
+            {
+                Debug.LogWarning("[SceneFlowManager] CompletionUI not found. Returning to Level Select by default.");
+                HandleCompletionNext();
+            }
+        }
+
+        private void HandleCompletionNext()
+        {
+            int nextIndex = CurrentLevelIndex + 1;
+            if (levelSceneNames != null && nextIndex >= 0 && nextIndex < levelSceneNames.Count)
+            {
+                LoadLevel(nextIndex);
+            }
+            else
+            {
+                LoadLevelSelect();
+            }
+        }
+
+        private void HandleCompletionRetry()
+        {
+            ReloadCurrent();
         }
     }
 }

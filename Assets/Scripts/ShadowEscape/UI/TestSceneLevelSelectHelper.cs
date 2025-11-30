@@ -2,6 +2,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using UnityObject = UnityEngine.Object;
 
 namespace ShadowEscape
 {
@@ -60,7 +61,7 @@ namespace ShadowEscape
 
             // Obtain scene list from LevelSelectManager or Assets/Scenes fallback
             string[] sceneNames = new string[0];
-            var lsm = FindObjectOfType<LevelSelectManager>();
+            var lsm = UnityObject.FindFirstObjectByType<LevelSelectManager>(FindObjectsInactive.Include);
             if (lsm != null && lsm.levelSceneNames != null && lsm.levelSceneNames.Count > 0)
             {
                 sceneNames = lsm.levelSceneNames.ToArray();

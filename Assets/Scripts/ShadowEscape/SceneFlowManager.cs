@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 using System;
 using UnityObject = UnityEngine.Object;
 
@@ -170,9 +171,91 @@ namespace ShadowEscape
                     DontDestroyOnLoad(_completionUI.gameObject);
                     _completionUI.Hide();
                 }
+                else if (_completionUI == null)
+                {
+                    _completionUI = BuildFallbackCompletionUI();
+                }
             }
 
             return _completionUI;
+        }
+
+        private CompletionUI BuildFallbackCompletionUI()
+        {
+            Font defaultFont = Resources.GetBuiltinResource<Font>("Arial.ttf");
+
+            var canvasGO = new GameObject("RuntimeCompletionUI", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            DontDestroyOnLoad(canvasGO);
+            var canvas = canvasGO.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 5000;
+
+            var scaler = canvasGO.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920, 1080);
+
+            var root = new GameObject("Panel", typeof(RectTransform), typeof(Image));
+            root.transform.SetParent(canvasGO.transform, false);
+            var rootRect = root.GetComponent<RectTransform>();
+            rootRect.anchorMin = new Vector2(0.5f, 0.5f);
+            rootRect.anchorMax = new Vector2(0.5f, 0.5f);
+            rootRect.sizeDelta = new Vector2(500f, 260f);
+            rootRect.anchoredPosition = Vector2.zero;
+            var rootImage = root.GetComponent<Image>();
+            rootImage.color = new Color(0f, 0f, 0f, 0.7f);
+
+            Text header = CreateText("Header", root.transform, defaultFont, 36, new Vector2(0, 60));
+            Text stars = CreateText("Stars", root.transform, defaultFont, 30, new Vector2(0, 10));
+
+            Button nextButton = CreateButton("NextButton", root.transform, defaultFont, "Next", new Vector2(-100, -70));
+            Button retryButton = CreateButton("RetryButton", root.transform, defaultFont, "Retry", new Vector2(100, -70));
+
+            var completion = canvasGO.AddComponent<CompletionUI>();
+            completion.AssignReferences(root, header, stars, nextButton, retryButton);
+            completion.Hide();
+            return completion;
+        }
+
+        private static Text CreateText(string name, Transform parent, Font font, int fontSize, Vector2 anchoredPos)
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var rect = go.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(440f, 60f);
+            rect.anchoredPosition = anchoredPos;
+            var text = go.AddComponent<Text>();
+            text.font = font;
+            text.fontSize = fontSize;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+            return text;
+        }
+
+        private static Button CreateButton(string name, Transform parent, Font font, string label, Vector2 anchoredPos)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+            go.transform.SetParent(parent, false);
+            var rect = go.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(160f, 50f);
+            rect.anchoredPosition = anchoredPos;
+
+            var img = go.GetComponent<Image>();
+            img.color = new Color(0.2f, 0.5f, 0.9f, 1f);
+
+            var textGO = new GameObject("Text", typeof(RectTransform));
+            textGO.transform.SetParent(go.transform, false);
+            var rectText = textGO.GetComponent<RectTransform>();
+            rectText.anchorMin = Vector2.zero;
+            rectText.anchorMax = Vector2.one;
+            rectText.offsetMin = Vector2.zero;
+            rectText.offsetMax = Vector2.zero;
+            var text = textGO.AddComponent<Text>();
+            text.font = font;
+            text.text = label;
+            text.alignment = TextAnchor.MiddleCenter;
+            text.color = Color.white;
+
+            return go.GetComponent<Button>();
         }
 
         // 레벨 완료 후 후속 처리 (Completion UI 연동)

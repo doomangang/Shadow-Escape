@@ -10,9 +10,9 @@ namespace ShadowEscape
     /// </summary>
     public class CompletionUI : MonoBehaviour
     {
-        [SerializeField] private GameObject root;
-    [SerializeField] private Text headerText;
-    [SerializeField] private Text starsText;
+    [SerializeField] private GameObject root;
+	[SerializeField] private Text headerText;
+	[SerializeField] private Text starsText;
         [SerializeField] private Button nextButton;
         [SerializeField] private Button retryButton;
 
@@ -24,6 +24,15 @@ namespace ShadowEscape
             }
 
             Hide();
+        }
+
+        public void AssignReferences(GameObject rootObject, Text header, Text stars, Button next, Button retry)
+        {
+            root = rootObject != null ? rootObject : gameObject;
+            headerText = header;
+            starsText = stars;
+            nextButton = next;
+            retryButton = retry;
         }
 
         public void Show(int stars, Action onNext, Action onRetry)

@@ -68,20 +68,39 @@ namespace ShadowEscape
         public void InitializeSceneList()
         {
             if (levelSceneNames != null && levelSceneNames.Count > 0) return; // 이미 설정됨
-
             try
             {
-                var path = "Assets/Scenes";
-                if (Directory.Exists(path))
+                var names = new List<string>();
+
+                // 우선 BuildSettings에 등록된 씬을 사용 (빌드 환경에서 안전)
+                int buildCount = SceneManager.sceneCountInBuildSettings;
+                if (buildCount > 0)
                 {
-                    var files = Directory.GetFiles(path, "*.unity", SearchOption.TopDirectoryOnly);
-                    var names = files.Select(Path.GetFileNameWithoutExtension)
-                                     .Where(n => !string.IsNullOrEmpty(n))
-                                     .OrderBy(n => n)
-                                     .ToList();
-                    // 타이틀/레벨선택 씬 제외한 퍼즐 레벨만 추출 (규칙: 앞 두 씬 명은 title/level select)
+                    for (int i = 0; i < buildCount; i++)
+                    {
+                        var path = SceneUtility.GetScenePathByBuildIndex(i);
+                        if (string.IsNullOrEmpty(path)) continue;
+                        var name = Path.GetFileNameWithoutExtension(path);
+                        if (!string.IsNullOrEmpty(name)) names.Add(name);
+                    }
+
+                    // 타이틀/레벨선택 씬 제외한 퍼즐 레벨만 추출
                     levelSceneNames = names.Where(n => n != titleSceneName && n != levelSelectSceneName).ToList();
-                    Debug.Log($"[SceneFlowManager] 자동 레벨 목록 채움: {levelSceneNames.Count}개");
+                    Debug.Log($"[SceneFlowManager] 빌드 설정에서 레벨 목록 채움: {levelSceneNames.Count}개 (BuildSettings count={buildCount})");
+                    return;
+                }
+
+                // 폴백: (에디터에서) Assets/Scenes 폴더를 읽어 자동 채움
+                var pathDir = "Assets/Scenes";
+                if (Directory.Exists(pathDir))
+                {
+                    var files = Directory.GetFiles(pathDir, "*.unity", SearchOption.TopDirectoryOnly);
+                    var fileNames = files.Select(Path.GetFileNameWithoutExtension)
+                                         .Where(n => !string.IsNullOrEmpty(n))
+                                         .OrderBy(n => n)
+                                         .ToList();
+                    levelSceneNames = fileNames.Where(n => n != titleSceneName && n != levelSelectSceneName).ToList();
+                    Debug.Log($"[SceneFlowManager] 디스크(Assets/Scenes)에서 레벨 목록 채움: {levelSceneNames.Count}개");
                 }
             }
             catch (System.Exception ex)

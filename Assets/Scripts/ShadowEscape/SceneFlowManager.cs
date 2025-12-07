@@ -31,7 +31,11 @@ namespace ShadowEscape
             }
         }
 
-        [Tooltip("레벨 씬 이름 목록 (자동 채움 가능)")] public List<string> levelSceneNames = new List<string>();
+    [Tooltip("레벨 씬 이름 목록 (자동 채움 가능)")] public List<string> levelSceneNames = new List<string>();
+    [Tooltip("자동 정렬 시 사용할 난이도 키워드 순서")] [SerializeField]
+    private string[] difficultyKeywordOrder = new[] { "easy", "medium", "hard" };
+    [Tooltip("난이도 키워드 기반 정렬 강제 적용 여부")] [SerializeField]
+    private bool enforceKeywordOrdering = true;
         [Tooltip("타이틀 씬 이름")] public string titleSceneName = "00_Title";
         [Tooltip("레벨 선택 씬 이름")] public string levelSelectSceneName = "01_LevelSelect";
 
@@ -86,6 +90,7 @@ namespace ShadowEscape
 
                     // 타이틀/레벨선택 씬 제외한 퍼즐 레벨만 추출
                     levelSceneNames = names.Where(n => n != titleSceneName && n != levelSelectSceneName).ToList();
+                    ApplyPreferredOrdering();
                     Debug.Log($"[SceneFlowManager] 빌드 설정에서 레벨 목록 채움: {levelSceneNames.Count}개 (BuildSettings count={buildCount})");
                     return;
                 }
@@ -100,6 +105,7 @@ namespace ShadowEscape
                                          .OrderBy(n => n)
                                          .ToList();
                     levelSceneNames = fileNames.Where(n => n != titleSceneName && n != levelSelectSceneName).ToList();
+                    ApplyPreferredOrdering();
                     Debug.Log($"[SceneFlowManager] 디스크(Assets/Scenes)에서 레벨 목록 채움: {levelSceneNames.Count}개");
                 }
             }
@@ -107,6 +113,44 @@ namespace ShadowEscape
             {
                 Debug.LogWarning("Scene list 초기화 실패: " + ex.Message);
             }
+        }
+
+        private void ApplyPreferredOrdering()
+        {
+            if (!enforceKeywordOrdering || levelSceneNames == null || levelSceneNames.Count <= 1)
+            {
+                return;
+            }
+
+            levelSceneNames = levelSceneNames
+                .OrderBy(name => GetKeywordSortValue(name))
+                .ThenBy(name => name)
+                .ToList();
+        }
+
+        private int GetKeywordSortValue(string sceneName)
+        {
+            if (difficultyKeywordOrder == null || difficultyKeywordOrder.Length == 0 || string.IsNullOrEmpty(sceneName))
+            {
+                return int.MaxValue;
+            }
+
+            string lower = sceneName.ToLowerInvariant();
+            for (int i = 0; i < difficultyKeywordOrder.Length; i++)
+            {
+                var keyword = difficultyKeywordOrder[i];
+                if (string.IsNullOrWhiteSpace(keyword))
+                {
+                    continue;
+                }
+
+                if (lower.Contains(keyword.ToLowerInvariant()))
+                {
+                    return i;
+                }
+            }
+
+            return difficultyKeywordOrder.Length;
         }
 
         // --- 씬 로드 진입점 ---
@@ -177,6 +221,86 @@ namespace ShadowEscape
             CurrentSceneName = scene.name;
             _completionUI = null;
             AudioManager.Instance?.PlayBGMForScene(scene.name);
+
+            // UI 이벤트가 동작하지 않는 케이스 방지: EventSystem 자동 생성
+            EnsureEventSystemExists();
+        }
+
+        private void EnsureEventSystemExists()
+        {
+            var systems = UnityObject.FindObjectsByType<UnityEngine.EventSystems.EventSystem>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            UnityEngine.EventSystems.EventSystem activeSystem = null;
+
+            if (systems != null && systems.Length > 0)
+            {
+                activeSystem = SelectPrimaryEventSystem(systems);
+
+                for (int i = 0; i < systems.Length; i++)
+                {
+                    var candidate = systems[i];
+                    if (candidate == null || candidate == activeSystem) continue;
+
+                    Debug.LogWarning($"[SceneFlowManager] Scene '{candidate.gameObject.scene.name}'에서 중복 EventSystem '{candidate.name}'을 제거했습니다.");
+                    Destroy(candidate.gameObject);
+                }
+            }
+
+            if (activeSystem == null)
+            {
+                activeSystem = CreateEventSystem();
+                Debug.Log("[SceneFlowManager] EventSystem이 없어 자동 생성했습니다.");
+            }
+
+            EnsureEventSystemHasInputModule(activeSystem);
+        }
+
+        private UnityEngine.EventSystems.EventSystem SelectPrimaryEventSystem(UnityEngine.EventSystems.EventSystem[] systems)
+        {
+            if (systems == null || systems.Length == 0) return null;
+
+            // 선호 순서: DontDestroyOnLoad 씬에 있는 객체 → 나머지 중 첫 번째
+            var persistent = systems.FirstOrDefault(s => s != null && s.gameObject.scene.name == "DontDestroyOnLoad");
+            var primary = persistent ?? systems.FirstOrDefault(s => s != null);
+
+            if (primary != null && primary.gameObject.scene.name != "DontDestroyOnLoad")
+            {
+                DontDestroyOnLoad(primary.gameObject);
+            }
+
+            return primary;
+        }
+
+        private UnityEngine.EventSystems.EventSystem CreateEventSystem()
+        {
+            var go = new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem));
+            DontDestroyOnLoad(go);
+            return go.GetComponent<UnityEngine.EventSystems.EventSystem>();
+        }
+
+        private void EnsureEventSystemHasInputModule(UnityEngine.EventSystems.EventSystem target)
+        {
+            if (target == null) return;
+
+            var inputSystemModuleType = System.Type.GetType("UnityEngine.InputSystem.UI.InputSystemUIInputModule, Unity.InputSystem.UI")
+                                        ?? System.Type.GetType("UnityEngine.InputSystem.UI.InputSystemUIInputModule, Unity.InputSystem");
+
+            if (inputSystemModuleType != null)
+            {
+                var hasInputSystemModule = target.GetComponent(inputSystemModuleType) != null;
+                var legacy = target.GetComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+                if (!hasInputSystemModule)
+                {
+                    target.gameObject.AddComponent(inputSystemModuleType);
+                }
+                if (legacy != null)
+                {
+                    Destroy(legacy);
+                }
+            }
+            else if (target.GetComponent<UnityEngine.EventSystems.StandaloneInputModule>() == null)
+            {
+                target.gameObject.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+            }
         }
 
         private CompletionUI GetCompletionUI()

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,92 +11,166 @@ namespace ShadowEscape
     [DisallowMultipleComponent]
     public class LevelSelectSceneBootstrap : MonoBehaviour
     {
-        [SerializeField] private string headerText = "레벨 선택";
+        [Header("Text Configuration")]
+        [SerializeField] private string headerText = "Select Level";
+        [SerializeField] private string infoDefaultText = "Select a level with the left button";
+    [SerializeField] private string backButtonText = "Back to Title";
+    [SerializeField] private string reloadButtonText = "Reload Scene";
 
-        private void Start()
+        [Header("UI References")]
+        [SerializeField] private TMP_Text headerLabel;
+        [SerializeField] private TMP_Text infoLabel;
+    [SerializeField] private TMP_Text backButtonLabel;
+    [SerializeField] private TMP_Text reloadButtonLabel;
+        [SerializeField] private RectTransform contentRoot;
+        [SerializeField] private LevelSelectButtonView levelButtonPrefab;
+        [SerializeField] private Button backButton;
+        [SerializeField] private Button reloadButton;
+
+        [Header("Visual Settings")]
+        [SerializeField] private Color unlockedButtonColor = Color.white;
+        [SerializeField] private Color lockedButtonColor = new Color(0.3f, 0.3f, 0.3f, 1f);
+    [SerializeField] private bool verboseLogging;
+
+        private readonly List<LevelSelectButtonView> spawnedButtons = new List<LevelSelectButtonView>();
+
+        private void Awake()
         {
-            BuildUI();
+            if (backButton != null)
+            {
+                backButton.onClick.RemoveAllListeners();
+                backButton.onClick.AddListener(() => SceneFlowManager.Instance?.LoadTitle());
+            }
+
+            if (reloadButton != null)
+            {
+                reloadButton.onClick.RemoveAllListeners();
+                reloadButton.onClick.AddListener(() => SceneFlowManager.Instance?.LoadLevelSelect());
+            }
         }
 
-        private void BuildUI()
+        private void OnEnable()
         {
-            RuntimeUIBuilder.EnsureEventSystemExists();
-            var canvas = RuntimeUIBuilder.CreateFullScreenCanvas("LevelSelectCanvas", transform);
-            var panel = RuntimeUIBuilder.CreatePanel(canvas.transform, "LevelSelectPanel", new Vector2(900, 800));
+            RefreshUI();
+        }
 
-            RuntimeUIBuilder.CreateText(panel.transform, "Header", headerText, 46, new Vector2(780, 80), new Vector2(0, 320));
+        public void RefreshUI()
+        {
+            if (headerLabel != null)
+            {
+                headerLabel.text = headerText;
+            }
 
-            var infoText = RuntimeUIBuilder.CreateText(panel.transform, "Info", "왼쪽 버튼으로 레벨을 선택하세요", 24, new Vector2(780, 40), new Vector2(0, 260));
+            if (infoLabel != null)
+            {
+                infoLabel.text = infoDefaultText;
+            }
 
-            var scrollGO = new GameObject("ScrollView", typeof(RectTransform), typeof(Image), typeof(Mask), typeof(ScrollRect));
-            scrollGO.transform.SetParent(panel.transform, false);
-            var scrollRect = scrollGO.GetComponent<ScrollRect>();
-            var scrollRectTransform = scrollGO.GetComponent<RectTransform>();
-            scrollRectTransform.sizeDelta = new Vector2(780, 500);
-            scrollRectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-            scrollRectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-            scrollRectTransform.anchoredPosition = new Vector2(0, -40);
-            scrollGO.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.25f);
-            scrollGO.GetComponent<Mask>().showMaskGraphic = false;
+            if (backButtonLabel != null)
+            {
+                backButtonLabel.text = backButtonText;
+            }
 
-            var contentGO = new GameObject("Content", typeof(RectTransform));
-            contentGO.transform.SetParent(scrollGO.transform, false);
-            var contentRect = contentGO.GetComponent<RectTransform>();
-            contentRect.anchorMin = new Vector2(0f, 1f);
-            contentRect.anchorMax = new Vector2(1f, 1f);
-            contentRect.pivot = new Vector2(0.5f, 1f);
-            contentRect.sizeDelta = new Vector2(0, 0);
+            if (reloadButtonLabel != null)
+            {
+                reloadButtonLabel.text = reloadButtonText;
+            }
 
-            var layout = contentGO.AddComponent<GridLayoutGroup>();
-            layout.cellSize = new Vector2(360, 120);
-            layout.spacing = new Vector2(20, 20);
-            layout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            layout.constraintCount = 2;
-            layout.childAlignment = TextAnchor.UpperCenter;
+            if (contentRoot == null || levelButtonPrefab == null)
+            {
+                Debug.LogWarning("LevelSelectSceneBootstrap: UI 참조가 비어있습니다. 인스펙터에서 할당해주세요.");
+                return;
+            }
 
-            scrollRect.content = contentRect;
+            ClearButtons();
 
             var sfm = SceneFlowManager.Instance;
             var gm = GameManager.Instance;
 
             List<string> levelNames = sfm?.levelSceneNames ?? new List<string>();
-            if (levelNames.Count == 0)
+            if (levelNames.Count == 0 && infoLabel != null)
             {
-                infoText.text = "씬 리스트를 찾을 수 없습니다. SceneFlowManager.levelSceneNames를 채워주세요.";
+                infoLabel.text = "Level list not found. Please populate SceneFlowManager.levelSceneNames.";
             }
 
             for (int i = 0; i < levelNames.Count; i++)
             {
-                CreateLevelButton(contentRect, i, levelNames[i], gm, sfm);
+                SpawnLevelButton(i, levelNames[i], gm, sfm);
             }
 
-            var backButton = RuntimeUIBuilder.CreateButton(panel.transform, "BackButton", "타이틀로", new Vector2(300, 60), new Vector2(-200, -340));
-            backButton.onClick.AddListener(() => SceneFlowManager.Instance?.LoadTitle());
-
-            var reloadButton = RuntimeUIBuilder.CreateButton(panel.transform, "ReloadButton", "씬 다시 불러오기", new Vector2(300, 60), new Vector2(200, -340));
-            reloadButton.onClick.AddListener(() => SceneFlowManager.Instance?.LoadLevelSelect());
+            LayoutRebuilder.ForceRebuildLayoutImmediate(contentRoot);
         }
 
-        private void CreateLevelButton(Transform parent, int levelIndex, string sceneName, GameManager gm, SceneFlowManager sfm)
+        private void SpawnLevelButton(int levelIndex, string sceneName, GameManager gm, SceneFlowManager sfm)
         {
-            var button = RuntimeUIBuilder.CreateButton(parent, $"LevelButton_{levelIndex}", sceneName, new Vector2(360, 120), Vector2.zero);
-            button.transform.localScale = Vector3.one;
+            var view = Instantiate(levelButtonPrefab, contentRoot);
+            view.gameObject.name = $"LevelButton_{levelIndex}";
+
+            if (!view.EnsureBindings())
+            {
+                LogVerbose($"{view.name} 프리팹 참조가 비어 있어 파괴합니다.");
+                Destroy(view.gameObject);
+                return;
+            }
+
+            var button = view.Button;
+            if (button == null)
+            {
+                Debug.LogWarning("LevelSelectButtonView prefab에는 Button 컴포넌트가 필요합니다.");
+                Destroy(view.gameObject);
+                return;
+            }
 
             bool unlocked = gm == null || gm.IsTester || gm.IsLevelUnlocked(levelIndex);
             button.interactable = unlocked;
 
-            if (!unlocked)
+            var image = button.GetComponent<Image>();
+            if (image != null)
             {
-                button.GetComponent<Image>().color = new Color(0.3f, 0.3f, 0.3f, 1f);
+                image.color = unlocked ? unlockedButtonColor : lockedButtonColor;
             }
 
+            button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() => sfm?.LoadLevel(levelIndex));
 
-            var statusText = RuntimeUIBuilder.CreateText(button.transform, "Status", unlocked ? "Unlocked" : "Locked", 20, new Vector2(320, 30), new Vector2(0, -25));
-            statusText.alignment = TextAnchor.MiddleLeft;
+            if (view.TitleLabel != null)
+            {
+                view.TitleLabel.text = sceneName;
+            }
 
-            var starText = RuntimeUIBuilder.CreateText(button.transform, "Stars", "★" + GetStarCount(levelIndex, gm), 24, new Vector2(320, 30), new Vector2(0, 25));
-            starText.alignment = TextAnchor.MiddleLeft;
+            if (view.StatusLabel != null)
+            {
+                view.StatusLabel.text = unlocked ? "Unlocked" : "Locked";
+            }
+
+            if (view.StarLabel != null)
+            {
+                view.StarLabel.text = "S" + GetStarCount(levelIndex, gm);
+            }
+
+            LogVerbose($"{sceneName} 버튼 생성 완료 - Status='{view.StatusLabel?.text}', Stars='{view.StarLabel?.text}'");
+            spawnedButtons.Add(view);
+        }
+
+        private void ClearButtons()
+        {
+            for (int i = spawnedButtons.Count - 1; i >= 0; i--)
+            {
+                if (spawnedButtons[i] == null) continue;
+
+#if UNITY_EDITOR
+                if (!Application.isPlaying)
+                {
+                    DestroyImmediate(spawnedButtons[i].gameObject);
+                }
+                else
+#endif
+                {
+                    Destroy(spawnedButtons[i].gameObject);
+                }
+            }
+
+            spawnedButtons.Clear();
         }
 
         private string GetStarCount(int levelIndex, GameManager gm)
@@ -112,6 +187,12 @@ namespace ShadowEscape
 
             int stars = gm.CurrentSave.starsEarnedAtLevel[levelIndex];
             return Mathf.Clamp(stars, 0, 3).ToString();
+        }
+
+        private void LogVerbose(string message)
+        {
+            if (!verboseLogging) return;
+            Debug.Log($"[LevelSelectSceneBootstrap] {message}", this);
         }
     }
 }

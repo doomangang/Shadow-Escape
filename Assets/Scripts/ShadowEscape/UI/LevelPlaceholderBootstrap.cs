@@ -21,7 +21,6 @@ namespace ShadowEscape
 
         private void BuildUI()
         {
-            RuntimeUIBuilder.EnsureEventSystemExists();
             var canvas = RuntimeUIBuilder.CreateFullScreenCanvas("LevelPlaceholderCanvas", transform);
             var panel = RuntimeUIBuilder.CreatePanel(canvas.transform, "LevelPanel", new Vector2(700, 400));
 

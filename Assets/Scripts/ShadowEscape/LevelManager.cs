@@ -58,6 +58,14 @@ namespace ShadowEscape
     private LevelMetadata _metadata; // 난이도/힌트 데이터
     private DifficultyTier _effectiveDifficulty = DifficultyTier.Hard; // 기본값 (제약 없음)
 
+        private void Awake()
+        {
+            if (hintDisplay == null)
+            {
+                hintDisplay = GetComponent<LevelHintDisplay>() ?? GetComponentInChildren<LevelHintDisplay>(true);
+            }
+        }
+
         private void Start()
         {
             mainCamera = Camera.main;

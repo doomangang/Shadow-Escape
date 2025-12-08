@@ -188,13 +188,16 @@ namespace ShadowEscape
         // sceneName: 씬 이름
         public void LoadScene(string sceneName)
         {
-            SceneManager.LoadScene(sceneName);
+            // 흐름 일원화를 위해 SceneFlowManager를 통해 로드
+            // (BGM 전환, CompletionUI/EventSystem 보장 등 공통 처리)
+            ShadowEscape.SceneFlowManager.Instance?.LoadScene(sceneName);
         }
 
         public void RestartCurrentScene()
         {
-            Scene currentScene = SceneManager.GetActiveScene();
-            SceneManager.LoadScene(currentScene.name);
+            // 현재 씬 이름을 가져와 SceneFlowManager에 위임
+            var currentScene = SceneManager.GetActiveScene();
+            ShadowEscape.SceneFlowManager.Instance?.LoadScene(currentScene.name);
         }
     }
 }

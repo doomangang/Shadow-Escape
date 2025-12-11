@@ -50,9 +50,12 @@ namespace ShadowEscape
             RuntimeUIBuilder.CreateText(panel.transform, "GameTitle", gameTitle, 48, new Vector2(560, 80), new Vector2(0, 260));
             RuntimeUIBuilder.CreateText(panel.transform, "Subtitle", subtitle, 26, new Vector2(560, 40), new Vector2(0, 210));
 
+#if UNITY_EDITOR
+            // Tester Toggle은 Editor에서만 표시
             var testerToggle = RuntimeUIBuilder.CreateToggle(panel.transform, "TesterToggle", "Tester Mode (Unlock All Levels)", new Vector2(520, 60), new Vector2(0, 80));
             testerToggle.isOn = GameManager.Instance != null && GameManager.Instance.IsTester;
             testerToggle.onValueChanged.AddListener(OnTesterToggled);
+#endif
 
             var startButton = RuntimeUIBuilder.CreateButton(panel.transform, "StartButton", "Start Game", new Vector2(420, 70), new Vector2(0, 10));
             startButton.onClick.AddListener(_titleManager.StartGame);

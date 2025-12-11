@@ -32,11 +32,17 @@ namespace ShadowEscape
             {
                 if (_instance == null)
                 {
+                    // 씬에 이미 있는 AudioManager를 먼저 찾기
                     _instance = UnityObject.FindFirstObjectByType<AudioManager>(FindObjectsInactive.Exclude);
                     if (_instance == null)
                     {
-                        var go = new GameObject("AudioManager");
+                        Debug.LogWarning("[AudioManager] No AudioManager found in scene. Creating runtime instance (will have no clips configured!)");
+                        var go = new GameObject("AudioManager_Runtime");
                         _instance = go.AddComponent<AudioManager>();
+                    }
+                    else
+                    {
+                        Debug.Log($"[AudioManager] Found existing AudioManager in scene: {_instance.gameObject.name}");
                     }
                 }
 
@@ -56,12 +62,19 @@ namespace ShadowEscape
     [Tooltip("Fallback BGM key used when no scene-specific mapping exists.")]
     [SerializeField] private string defaultBgmKey;
 
+        [Header("Music Categories")]
+        [Tooltip("BGM key for menu scenes (00_Home, 01_Menu)")]
+        [SerializeField] private string menuBgmKey = "Menu";
+        [Tooltip("BGM key for all gameplay levels")]
+        [SerializeField] private string gameplayBgmKey = "Gameplay";
+
         [Header("State")]
         [SerializeField, Range(0f, 1f)] private float masterVolume = 1f;
         [SerializeField] private bool isMuted = false;
 
         private Dictionary<string, AudioClip> _bgmMap;
         private Dictionary<string, AudioClip> _sfxMap;
+        private string _currentBgmCategory = "";
 
         public float MasterVolume => masterVolume;
         public bool IsMuted => isMuted;
@@ -80,6 +93,14 @@ namespace ShadowEscape
             EnsureAudioSources();
             BuildClipLookups();
             ApplyVolumeState();
+        }
+
+        private void Start()
+        {
+            // 현재 씬의 음악 재생
+            string currentScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+            PlayBGMForScene(currentScene);
+            Debug.Log($"[AudioManager] Started in scene: {currentScene}");
         }
 
         private void EnsureAudioSources()
@@ -105,6 +126,7 @@ namespace ShadowEscape
                 if (!string.IsNullOrEmpty(entry.key) && entry.clip != null)
                 {
                     _bgmMap[entry.key] = entry.clip;
+                    Debug.Log($"[AudioManager] Registered BGM: {entry.key} -> {entry.clip.name}");
                 }
             }
 
@@ -116,6 +138,8 @@ namespace ShadowEscape
                     _sfxMap[entry.key] = entry.clip;
                 }
             }
+            
+            Debug.Log($"[AudioManager] Total BGM clips registered: {_bgmMap.Count}");
         }
 
         private void ApplyVolumeState()
@@ -146,18 +170,21 @@ namespace ShadowEscape
 
             if (!_bgmMap.TryGetValue(key, out var clip) || clip == null)
             {
-                Debug.LogWarning($"[AudioManager] BGM clip not found for key '{key}'.");
+                Debug.LogWarning($"[AudioManager] BGM clip not found for key '{key}'. Available keys: {string.Join(", ", _bgmMap.Keys)}");
                 return;
             }
 
             if (bgmSource.clip == clip && bgmSource.isPlaying)
             {
+                Debug.Log($"[AudioManager] BGM '{key}' already playing");
                 return;
             }
 
             bgmSource.clip = clip;
             bgmSource.loop = true;
+            bgmSource.volume = isMuted ? 0f : masterVolume;
             bgmSource.Play();
+            Debug.Log($"[AudioManager] Playing BGM '{key}' (clip: {clip.name}, volume: {bgmSource.volume})");
         }
 
         public void PlayBGMForScene(string sceneName)
@@ -172,18 +199,63 @@ namespace ShadowEscape
                 BuildClipLookups();
             }
 
-            string resolvedKey = ResolveBgmKeyForScene(sceneName);
-            if (!string.IsNullOrEmpty(resolvedKey) && _bgmMap.ContainsKey(resolvedKey))
+            // 씬 카테고리 판단
+            string targetCategory = GetSceneCategory(sceneName);
+            
+            // 같은 카테고리면 음악 유지
+            if (targetCategory == _currentBgmCategory && bgmSource != null && bgmSource.isPlaying)
             {
-                PlayBGM(resolvedKey);
+                Debug.Log($"[AudioManager] Keeping current BGM for category '{targetCategory}'");
+                return;
+            }
+
+            // 카테고리에 맞는 BGM 재생
+            string bgmKey = GetBgmKeyForCategory(targetCategory);
+            if (!string.IsNullOrEmpty(bgmKey) && _bgmMap.ContainsKey(bgmKey))
+            {
+                _currentBgmCategory = targetCategory;
+                PlayBGM(bgmKey);
+                Debug.Log($"[AudioManager] Playing BGM '{bgmKey}' for category '{targetCategory}'");
             }
             else if (!string.IsNullOrEmpty(defaultBgmKey) && _bgmMap.ContainsKey(defaultBgmKey))
             {
+                _currentBgmCategory = "default";
                 PlayBGM(defaultBgmKey);
             }
             else
             {
+                _currentBgmCategory = "";
                 StopBGM();
+            }
+        }
+
+        private string GetSceneCategory(string sceneName)
+        {
+            // 메뉴 씬 (00_Home, 01_Menu 등)
+            if (sceneName.Contains("Home") || sceneName.Contains("Menu") || sceneName.Contains("00_") || sceneName.Contains("01_"))
+            {
+                return "menu";
+            }
+            
+            // 레벨 씬 (Level_, 숫자로 시작, 등)
+            if (sceneName.Contains("Level") || sceneName.StartsWith("02_") || sceneName.StartsWith("03_") || sceneName.StartsWith("04_"))
+            {
+                return "gameplay";
+            }
+
+            return "default";
+        }
+
+        private string GetBgmKeyForCategory(string category)
+        {
+            switch (category)
+            {
+                case "menu":
+                    return menuBgmKey;
+                case "gameplay":
+                    return gameplayBgmKey;
+                default:
+                    return defaultBgmKey;
             }
         }
 

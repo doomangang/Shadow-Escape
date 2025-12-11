@@ -25,7 +25,8 @@ namespace ShadowEscape
         }
 
         // ========== 게임 설정 ==========
-        [SerializeField] private int totalLevels = 10;
+        [SerializeField] private int totalLevels = 3; // Easy, Medium, Hard
+        public int TotalLevels => totalLevels;
         
     // Pause 상태
     private bool _isPaused = false;
@@ -34,7 +35,7 @@ namespace ShadowEscape
         // Test Mode 플래그
         // true: 모든 레벨 잠금 해제
         // false: Story Mode, 순차적 잠금 해제
-        public bool IsTester = false;
+        public bool IsTester = false; // 빌드에서는 항상 false
 
         // ========== 저장 데이터 ==========
         // 현재 플레이어의 진행 상황
@@ -85,12 +86,16 @@ namespace ShadowEscape
         // 저장된 진행 상황을 불러오고 없으면 새로운 SaveData를 생성
         public void LoadGame()
         {
+            Debug.Log($"[GameManager] LoadGame called. IsTester={IsTester}, TotalLevels={totalLevels}");
+            
             if (PlayerPrefs.HasKey("save"))
             {
                 string json = PlayerPrefs.GetString("save");
+                Debug.Log($"[GameManager] Found existing save data: {json}");
                 try
                 {
                     CurrentSave = JsonUtility.FromJson<SaveData>(json);
+                    Debug.Log($"[GameManager] Loaded save. Level 0 unlocked: {CurrentSave.isLevelAvailable[0]}, Level 1 unlocked: {(CurrentSave.isLevelAvailable.Length > 1 ? CurrentSave.isLevelAvailable[1].ToString() : "N/A")}");
                 }
                 catch (System.Exception ex)
                 {
@@ -138,7 +143,7 @@ namespace ShadowEscape
             else
             {
                 CurrentSave = new SaveData(totalLevels);
-                Debug.Log("새 게임 시작!");
+                Debug.Log($"[GameManager] 새 게임 시작! Level 0 unlocked: {CurrentSave.isLevelAvailable[0]}, Total levels: {totalLevels}");
             }
         }
 
@@ -153,7 +158,11 @@ namespace ShadowEscape
         // levelIndex: 레벨 인덱스 (0부터 시작)
         public bool IsLevelUnlocked(int levelIndex)
         {
-            if (IsTester) return true;
+            if (IsTester)
+            {
+                Debug.Log($"[GameManager] IsLevelUnlocked({levelIndex}) = true (Tester Mode)");
+                return true;
+            }
 
             if (levelIndex < 0 || levelIndex >= CurrentSave.isLevelAvailable.Length)
             {
@@ -161,7 +170,9 @@ namespace ShadowEscape
                 return false;
             }
 
-            return CurrentSave.isLevelAvailable[levelIndex];
+            bool unlocked = CurrentSave.isLevelAvailable[levelIndex];
+            Debug.Log($"[GameManager] IsLevelUnlocked({levelIndex}) = {unlocked}");
+            return unlocked;
         }
 
         // 레벨을 클리어하고 다음 레벨을 잠금 해제

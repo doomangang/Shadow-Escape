@@ -6,6 +6,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using System;
 using UnityObject = UnityEngine.Object;
+using TMPro;
 
 namespace ShadowEscape
 {
@@ -307,16 +308,24 @@ namespace ShadowEscape
         {
             if (_completionUI == null)
             {
+                Debug.Log("[SceneFlowManager] Searching for CompletionUI...");
                 _completionUI = UnityObject.FindFirstObjectByType<CompletionUI>(FindObjectsInactive.Include);
+                
                 if (_completionUI == null && completionUIPrefab != null)
                 {
+                    Debug.Log("[SceneFlowManager] Instantiating CompletionUI from prefab");
                     _completionUI = Instantiate(completionUIPrefab);
                     DontDestroyOnLoad(_completionUI.gameObject);
                     _completionUI.Hide();
                 }
                 else if (_completionUI == null)
                 {
+                    Debug.Log("[SceneFlowManager] Building fallback CompletionUI");
                     _completionUI = BuildFallbackCompletionUI();
+                }
+                else
+                {
+                    Debug.Log($"[SceneFlowManager] Found existing CompletionUI: {_completionUI.name}");
                 }
             }
 
@@ -325,7 +334,13 @@ namespace ShadowEscape
 
         private CompletionUI BuildFallbackCompletionUI()
         {
-            Font defaultFont = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            // Unity 2023+ uses LegacyRuntime.ttf instead of Arial.ttf
+            Font defaultFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            if (defaultFont == null)
+            {
+                // Fallback to Arial for older Unity versions
+                defaultFont = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            }
 
             var canvasGO = new GameObject("RuntimeCompletionUI", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             DontDestroyOnLoad(canvasGO);
@@ -342,34 +357,34 @@ namespace ShadowEscape
             var rootRect = root.GetComponent<RectTransform>();
             rootRect.anchorMin = new Vector2(0.5f, 0.5f);
             rootRect.anchorMax = new Vector2(0.5f, 0.5f);
-            rootRect.sizeDelta = new Vector2(500f, 260f);
+            rootRect.sizeDelta = new Vector2(800f, 400f); // 더 크게
             rootRect.anchoredPosition = Vector2.zero;
             var rootImage = root.GetComponent<Image>();
-            rootImage.color = new Color(0f, 0f, 0f, 0.7f);
+            rootImage.color = new Color(0f, 0f, 0f, 0.9f); // 더 진하게
 
-            Text header = CreateText("Header", root.transform, defaultFont, 36, new Vector2(0, 60));
-            Text stars = CreateText("Stars", root.transform, defaultFont, 30, new Vector2(0, 10));
+            TMP_Text header = CreateTMPText("Header", root.transform, 36, new Vector2(0, 60));
+            TMP_Text stars = CreateTMPText("Stars", root.transform, 30, new Vector2(0, 10));
 
-            Button nextButton = CreateButton("NextButton", root.transform, defaultFont, "Next", new Vector2(-100, -70));
-            Button retryButton = CreateButton("RetryButton", root.transform, defaultFont, "Retry", new Vector2(100, -70));
+            Button nextButton = CreateButton("NextButton", root.transform, defaultFont, "Next", new Vector2(-150, -70));
+            Button retryButton = CreateButton("RetryButton", root.transform, defaultFont, "Retry", new Vector2(0, -70));
+            Button menuButton = CreateButton("MenuButton", root.transform, defaultFont, "Menu", new Vector2(150, -70));
 
             var completion = canvasGO.AddComponent<CompletionUI>();
-            completion.AssignReferences(root, header, stars, nextButton, retryButton);
+            completion.AssignReferences(root, header, stars, nextButton, retryButton, menuButton);
             completion.Hide();
             return completion;
         }
 
-        private static Text CreateText(string name, Transform parent, Font font, int fontSize, Vector2 anchoredPos)
+        private static TMP_Text CreateTMPText(string name, Transform parent, int fontSize, Vector2 anchoredPos)
         {
             var go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(parent, false);
             var rect = go.GetComponent<RectTransform>();
             rect.sizeDelta = new Vector2(440f, 60f);
             rect.anchoredPosition = anchoredPos;
-            var text = go.AddComponent<Text>();
-            text.font = font;
+            var text = go.AddComponent<TMPro.TextMeshProUGUI>();
             text.fontSize = fontSize;
-            text.alignment = TextAnchor.MiddleCenter;
+            text.alignment = TMPro.TextAlignmentOptions.Center;
             text.color = Color.white;
             return text;
         }
@@ -404,14 +419,26 @@ namespace ShadowEscape
         // 레벨 완료 후 후속 처리 (Completion UI 연동)
         public void OnLevelCompleted(int stars)
         {
+            Debug.Log($"[SceneFlowManager] OnLevelCompleted called with {stars} stars");
+            
             if (CurrentLevelIndex >= 0 && GameManager.Instance != null)
             {
                 GameManager.Instance.CompleteLevel(CurrentLevelIndex, stars);
             }
 
             var completionUI = GetCompletionUI();
+            Debug.Log($"[SceneFlowManager] CompletionUI obtained: {(completionUI != null ? completionUI.name : "NULL")}");
+            
             if (completionUI != null)
             {
+                // 마지막 레벨인지 확인
+                bool isLastLevel = false;
+                if (GameManager.Instance != null)
+                {
+                    isLastLevel = (CurrentLevelIndex >= GameManager.Instance.TotalLevels - 1);
+                }
+                
+                Debug.Log($"[SceneFlowManager] Calling completionUI.Show() - CurrentLevel={CurrentLevelIndex}, IsLastLevel={isLastLevel}");
                 completionUI.Show(
                     stars,
                     () =>
@@ -423,7 +450,13 @@ namespace ShadowEscape
                     {
                         completionUI.Hide();
                         HandleCompletionRetry();
-                    });
+                    },
+                    () =>
+                    {
+                        completionUI.Hide();
+                        LoadLevelSelect();
+                    },
+                    showNextButton: !isLastLevel); // 마지막 레벨이면 Next 버튼 숨김
             }
             else
             {

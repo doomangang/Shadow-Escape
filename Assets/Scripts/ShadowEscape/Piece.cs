@@ -24,13 +24,13 @@ namespace ShadowEscape
         }
 
         // 이동: LevelManager에서 Shift+드래그일 때 호출
-        // deltaX, deltaY는 스크린/월드 스케일에 맞춰 LevelManager에서 조절
-        public void Move(float deltaX, float deltaY)
+        // movement: 카메라 기준 이동 벡터 (LevelManager에서 카메라 right/up 방향으로 계산)
+        public void Move(Vector3 movement)
         {
             if (!canMove) return;
 
-            // 월드 X/Y 평면으로 이동
-            transform.Translate(new Vector3(deltaX, deltaY, 0f), Space.World);
+            // 카메라 기준 방향 벡터로 이동 (World Space)
+            transform.position += movement;
         }
     }
 }

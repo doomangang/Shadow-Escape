@@ -21,5 +21,29 @@ namespace ShadowEscape
 
             return posDist <= positionTolerance && rotAngle <= rotationTolerance;
         }
+
+        // 정확도 계산 (0~1, 1이 완벽한 정답)
+        // Spotlight 색상 피드백 등에 사용
+        // includePosition: Hard 난이도에서만 true (Easy/Medium은 회전만)
+        public float CalculateAccuracy(Transform pieceTransform, bool includePosition = true)
+        {
+            float rotAngle = Quaternion.Angle(transform.rotation, pieceTransform.rotation);
+            
+            // 회전 정확도: tolerance 이내면 1, 멀수록 0에 가까워짐
+            float rotAccuracy = Mathf.Clamp01(1f - (rotAngle / (rotationTolerance * 3f)));
+
+            if (!includePosition)
+            {
+                // Easy/Medium: 회전만 평가
+                return rotAccuracy;
+            }
+
+            // Hard: 위치 + 회전 평가
+            float posDist = Vector3.Distance(transform.position, pieceTransform.position);
+            float posAccuracy = Mathf.Clamp01(1f - (posDist / (positionTolerance * 3f)));
+            
+            // 위치와 회전의 평균
+            return (posAccuracy + rotAccuracy) / 2f;
+        }
     }
 }

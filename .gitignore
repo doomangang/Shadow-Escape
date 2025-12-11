@@ -53,3 +53,5 @@ build.app/
 # VS Code
 *.code-workspace
 .vscode/
+
+*.app/*

@@ -15,12 +15,33 @@ namespace ShadowEscape
         [SerializeField] private GameObject root;
         [SerializeField] private Slider volumeSlider;
         [SerializeField] private Toggle muteToggle;
+        
+        [Header("Navigation Buttons")]
+        [SerializeField] private Button continueButton;
+        [SerializeField] private Button restartButton;
+        [SerializeField] private Button menuButton;
 
         private void Awake()
         {
             if (root != null)
             {
                 root.SetActive(false);
+            }
+            
+            // Wire buttons
+            if (continueButton != null)
+            {
+                continueButton.onClick.AddListener(OnContinue);
+            }
+            
+            if (restartButton != null)
+            {
+                restartButton.onClick.AddListener(OnRestart);
+            }
+            
+            if (menuButton != null)
+            {
+                menuButton.onClick.AddListener(OnReturnToMenu);
             }
         }
 
@@ -86,6 +107,11 @@ namespace ShadowEscape
             {
                 Show();
             }
+        }
+
+        public void OnContinue()
+        {
+            Hide();
         }
 
         public void OnRestart()

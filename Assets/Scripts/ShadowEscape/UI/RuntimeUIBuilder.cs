@@ -6,10 +6,6 @@ using UnityEngine.UI;
 
 namespace ShadowEscape
 {
-    /// <summary>
-    /// Helper utilities to generate simple runtime UI without needing prefab authoring.
-    /// Keeps scene bootstrap scripts short and readable.
-    /// </summary>
     public static class RuntimeUIBuilder
     {
         private static Sprite _defaultSprite;

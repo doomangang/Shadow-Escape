@@ -3,10 +3,6 @@ using UnityEngine.UI;
 
 namespace ShadowEscape
 {
-    /// <summary>
-    /// Generates a functional Title Screen UI at runtime so designers can focus on gameplay scenes first.
-    /// Relies on TitleScreenManager for the actual button behaviors.
-    /// </summary>
     [DisallowMultipleComponent]
     public class TitleSceneBootstrap : MonoBehaviour
     {
@@ -33,7 +29,6 @@ namespace ShadowEscape
 
         private void Start()
         {
-            // 에디터에서 시각 편집을 위해 사용자가 직접 Canvas를 배치했다면 런타임 자동 생성은 생략
             bool hasAnyCanvas = GetComponentInChildren<Canvas>(true) != null;
             if (skipRuntimeBuildIfCanvasExists && (hasAnyCanvas || transform.Find(rootCanvasName) != null))
             {

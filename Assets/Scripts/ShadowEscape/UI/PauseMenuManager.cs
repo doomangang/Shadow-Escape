@@ -5,12 +5,7 @@ using UnityEditor;
 #endif
 
 namespace ShadowEscape
-{
-    /// <summary>
-    /// Handles showing the pause overlay, syncing tester-required audio options,
-    /// and exposing core navigation buttons.
-    /// </summary>
-    public class PauseMenuManager : MonoBehaviour
+{    public class PauseMenuManager : MonoBehaviour
     {
         [SerializeField] private GameObject root;
         [SerializeField] private Slider volumeSlider;

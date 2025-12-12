@@ -6,10 +6,6 @@ using TMPro;
 
 namespace ShadowEscape
 {
-    /// <summary>
-    /// Lightweight completion screen controller. Displays earned stars
-    /// and wires button callbacks to SceneFlowManager actions.
-    /// </summary>
     public class CompletionUI : MonoBehaviour
     {
     	[SerializeField] private GameObject root;

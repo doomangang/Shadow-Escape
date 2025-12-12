@@ -4,11 +4,6 @@ using UnityEngine.UI;
 
 namespace ShadowEscape
 {
-    /// <summary>
-    /// Helper component that exposes the important sub-elements of a level button prefab
-    /// so that designers can wire everything up in the editor while the bootstrapper
-    /// simply fills in data at runtime.
-    /// </summary>
     [DisallowMultipleComponent]
     public class LevelSelectButtonView : MonoBehaviour
     {

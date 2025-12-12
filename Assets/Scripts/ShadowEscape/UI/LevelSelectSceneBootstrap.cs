@@ -5,9 +5,6 @@ using UnityEngine.UI;
 
 namespace ShadowEscape
 {
-    /// <summary>
-    /// Runtime-generated Level Select UI that reads data from GameManager + SceneFlowManager.
-    /// </summary>
     [DisallowMultipleComponent]
     public class LevelSelectSceneBootstrap : MonoBehaviour
     {

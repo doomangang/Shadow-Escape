@@ -5,11 +5,6 @@ using UnityEngine.UI;
 
 namespace ShadowEscape
 {
-    /// <summary>
-    /// If you've built the Title UI manually in the scene, this component auto-wires
-    /// common controls (Start/Reset/Quit buttons, Tester/Mute toggles, Volume slider)
-    /// to TitleScreenManager and AudioManager. Attach it to any root GameObject in the Title scene.
-    /// </summary>
     [DisallowMultipleComponent]
     public class TitleSceneAutoWire : MonoBehaviour
     {

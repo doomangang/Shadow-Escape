@@ -2,11 +2,7 @@ using UnityEngine;
 
 namespace ShadowEscape
 {
-    /// <summary>
-    /// Ensures critical singleton managers are alive before the first scene loads so that
-    /// Audio/Pause/UI flows described in the notes exist even if the scene forgets to
-    /// place the prefabs manually.
-    /// </summary>
+
     public static class CoreBootstrapper
     {
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]

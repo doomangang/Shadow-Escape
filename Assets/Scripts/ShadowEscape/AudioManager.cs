@@ -18,11 +18,6 @@ namespace ShadowEscape
         public string sceneName;
         public string bgmKey;
     }
-
-    /// <summary>
-    /// Centralized BGM/SFX controller that satisfies the PRD bonus requirement for audio options.
-    /// Lives across scenes and exposes high-level helpers for UI to manipulate.
-    /// </summary>
     public class AudioManager : MonoBehaviour
     {
         private static AudioManager _instance;

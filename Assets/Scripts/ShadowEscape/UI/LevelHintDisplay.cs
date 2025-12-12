@@ -3,10 +3,6 @@ using UnityEngine.UI;
 
 namespace ShadowEscape
 {
-    /// <summary>
-    /// Simple helper UI component that shows or hides the current level hint text.
-    /// The LevelManager pushes metadata-driven hints into this display at runtime.
-    /// </summary>
     public class LevelHintDisplay : MonoBehaviour
     {
         [Tooltip("Optional root that will be toggled when showing/clearing hints. Defaults to the GameObject this script is on.")]

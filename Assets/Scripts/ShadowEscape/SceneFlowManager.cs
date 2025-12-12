@@ -195,7 +195,12 @@ namespace ShadowEscape
 
         public void ReloadCurrent()
         {
-            if (string.IsNullOrEmpty(CurrentSceneName)) return;
+            Debug.Log($"[SceneFlowManager] ReloadCurrent called. CurrentSceneName='{CurrentSceneName}', ActiveScene='{SceneManager.GetActiveScene().name}'");
+            if (string.IsNullOrEmpty(CurrentSceneName))
+            {
+                Debug.LogWarning("[SceneFlowManager] ReloadCurrent: CurrentSceneName is empty, aborting.");
+                return;
+            }
             LoadScene(CurrentSceneName);
         }
 
@@ -208,13 +213,19 @@ namespace ShadowEscape
         {
             if (string.IsNullOrEmpty(sceneName))
             {
-                Debug.LogWarning("sceneName 비어 있음");
+                Debug.LogWarning("[SceneFlowManager] LoadScene: sceneName 비어 있음");
                 return;
             }
-            SceneManager.LoadScene(sceneName);
+
+            Debug.Log($"[SceneFlowManager] Loading scene '{sceneName}'. ActiveScene before load: '{SceneManager.GetActiveScene().name}'");
+
+            // Use explicit Single mode reload to ensure a full scene reload
+            SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
+
             CurrentSceneName = sceneName;
             _completionUI = null;
             AudioManager.Instance?.PlayBGMForScene(sceneName);
+            Debug.Log($"[SceneFlowManager] LoadScene call completed for '{sceneName}'. ActiveScene now: '{SceneManager.GetActiveScene().name}'");
         }
 
         private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -435,7 +446,7 @@ namespace ShadowEscape
                 bool isLastLevel = false;
                 if (GameManager.Instance != null)
                 {
-                    isLastLevel = (CurrentLevelIndex >= GameManager.Instance.TotalLevels - 1);
+                    isLastLevel = CurrentLevelIndex >= GameManager.Instance.TotalLevels - 1;
                 }
                 
                 Debug.Log($"[SceneFlowManager] Calling completionUI.Show() - CurrentLevel={CurrentLevelIndex}, IsLastLevel={isLastLevel}");

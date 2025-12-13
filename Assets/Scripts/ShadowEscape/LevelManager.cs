@@ -447,12 +447,12 @@ namespace ShadowEscape
                         _calculatedTime2Stars = 60f;
                         break;
                     case DifficultyTier.Medium:
-                        _calculatedTime3Stars = 45f;
+                        _calculatedTime3Stars = 60f;
                         _calculatedTime2Stars = 90f;
                         break;
                     case DifficultyTier.Hard:
-                        _calculatedTime3Stars = 60f;
-                        _calculatedTime2Stars = 120f;
+                        _calculatedTime3Stars = 120f;
+                        _calculatedTime2Stars = 180f;
                         break;
                     default:
                         _calculatedTime3Stars = time3Stars;

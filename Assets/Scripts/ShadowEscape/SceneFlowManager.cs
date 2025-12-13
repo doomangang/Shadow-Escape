@@ -443,10 +443,15 @@ namespace ShadowEscape
             if (completionUI != null)
             {
                 // 마지막 레벨인지 확인
+                // Prefer using the actual scene list length if available, otherwise fall back to GameManager.TotalLevels
                 bool isLastLevel = false;
-                if (GameManager.Instance != null)
+                if (levelSceneNames != null && levelSceneNames.Count > 0)
                 {
-                    isLastLevel = CurrentLevelIndex >= GameManager.Instance.TotalLevels - 1;
+                    isLastLevel = (CurrentLevelIndex >= levelSceneNames.Count - 1);
+                }
+                else if (GameManager.Instance != null)
+                {
+                    isLastLevel = (CurrentLevelIndex >= GameManager.Instance.TotalLevels - 1);
                 }
                 
                 Debug.Log($"[SceneFlowManager] Calling completionUI.Show() - CurrentLevel={CurrentLevelIndex}, IsLastLevel={isLastLevel}");

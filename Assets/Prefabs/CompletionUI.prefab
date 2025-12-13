@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 4939008663344576556}
   - component: {fileID: 3735261436183353277}
   m_Layer: 5
-  m_Name: ExitButton
+  m_Name: MenuButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1127,7 +1127,7 @@ MonoBehaviour:
   - {fileID: 8317974963200066978}
   nextButton: {fileID: 1413078764690616731}
   retryButton: {fileID: 6007865023064750075}
-  menuButton: {fileID: 0}
+  menuButton: {fileID: 3735261436183353277}
 --- !u!1 &7404403096948800861
 GameObject:
   m_ObjectHideFlags: 0
